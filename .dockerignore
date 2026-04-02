@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+data
+public/uploads
+*.md
+.env
+.env.local
+.env.*.local
