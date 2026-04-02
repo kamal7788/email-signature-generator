@@ -32,5 +32,11 @@ export async function POST(req: Request) {
   const bytes = await file.arrayBuffer();
   fs.writeFileSync(path.join(uploadDir, safeName), Buffer.from(bytes));
 
-  return NextResponse.json({ url: `/uploads/${companySlug}/${safeName}` });
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  const host = req.headers.get('host');
+  const finalHost = forwardedHost || host || 'localhost:3000';
+  const protocol = req.headers.get('x-forwarded-proto') || (finalHost.includes('localhost') ? 'http' : 'https');
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${finalHost}`;
+
+  return NextResponse.json({ url: `${baseUrl}/uploads/${companySlug}/${safeName}` });
 }

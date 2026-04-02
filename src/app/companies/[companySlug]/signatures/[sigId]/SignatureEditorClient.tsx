@@ -146,28 +146,28 @@ const TEMPLATE_GROUPS: {
   group: string;
   variants: { id: TemplateName; label: string; description: string }[];
 }[] = [
-  {
-    group: 'Corporate',
-    variants: [
-      { id: 'corporate-a', label: 'Corporate A', description: 'Top bar · table contact · DLP' },
-      { id: 'corporate-b', label: 'Corporate B', description: 'Left bar · contact pills · DLP' },
-    ],
-  },
-  {
-    group: 'Minimal',
-    variants: [
-      { id: 'minimal-a', label: 'Minimal A', description: 'Inline name · bullet contact' },
-      { id: 'minimal-b', label: 'Minimal B', description: 'Split columns · vertical accent' },
-    ],
-  },
-  {
-    group: 'Modern',
-    variants: [
-      { id: 'modern-a', label: 'Modern A', description: 'Portrait · vertical accent bar' },
-      { id: 'modern-b', label: 'Modern B', description: 'Card · colored left block' },
-    ],
-  },
-];
+    {
+      group: 'Corporate',
+      variants: [
+        { id: 'corporate-a', label: 'Corporate A', description: 'Top bar · table contact · DLP' },
+        { id: 'corporate-b', label: 'Corporate B', description: 'Left bar · contact pills · DLP' },
+      ],
+    },
+    {
+      group: 'Minimal',
+      variants: [
+        { id: 'minimal-a', label: 'Minimal A', description: 'Inline name · bullet contact' },
+        { id: 'minimal-b', label: 'Minimal B', description: 'Split columns · vertical accent' },
+      ],
+    },
+    {
+      group: 'Modern',
+      variants: [
+        { id: 'modern-a', label: 'Modern A', description: 'Portrait · vertical accent bar' },
+        { id: 'modern-b', label: 'Modern B', description: 'Card · colored left block' },
+      ],
+    },
+  ];
 
 // ─── Social platforms ─────────────────────────────────────────────────────────
 
@@ -251,15 +251,18 @@ export default function SignatureEditorClient({
     }
   }
 
+  // Calculate absolute base URL to correct any old /uploads/ signatures
+  const base = typeof window !== 'undefined'
+    ? process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') || window.location.origin
+    : '';
+
+  // Generate the HTML and patch any old relative image paths to become absolute
+  const html = generateSignatureHtml(draft as SignatureData).replace(
+    /src="(\/uploads\/)/g,
+    `src="${base}$1`
+  );
+
   async function handleCopy() {
-    const base =
-      process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') ||
-      window.location.origin;
-    // Make uploaded image paths absolute so they work inside email clients
-    const html = generateSignatureHtml(draft as SignatureData).replace(
-      /src="(\/uploads\/)/g,
-      `src="${base}$1`
-    );
     try {
       await navigator.clipboard.write([
         new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }) }),
@@ -270,8 +273,6 @@ export default function SignatureEditorClient({
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   }
-
-  const html = generateSignatureHtml(draft as SignatureData);
 
   const tabs = [
     { id: 'profile' as const, label: 'Profile' },
@@ -307,11 +308,10 @@ export default function SignatureEditorClient({
           )}
           <button
             onClick={handleCopy}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              copied
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${copied
                 ? 'bg-emerald-700 text-emerald-100'
                 : 'border border-slate-600 text-slate-300 hover:bg-slate-700'
-            }`}
+              }`}
           >
             {copied ? '✓ Copied to Clipboard' : 'Copy HTML'}
           </button>
@@ -335,11 +335,10 @@ export default function SignatureEditorClient({
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
-                  activeTab === t.id
+                className={`px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${activeTab === t.id
                     ? 'text-indigo-400 border-b-2 border-indigo-500'
                     : 'text-slate-500 hover:text-slate-300'
-                }`}
+                  }`}
               >
                 {t.label}
               </button>
@@ -518,11 +517,10 @@ export default function SignatureEditorClient({
                           <button
                             key={t.id}
                             onClick={() => update({ template: t.id })}
-                            className={`rounded-lg border p-2.5 text-left transition-colors ${
-                              draft.template === t.id
+                            className={`rounded-lg border p-2.5 text-left transition-colors ${draft.template === t.id
                                 ? 'border-indigo-500 bg-indigo-900/30'
                                 : 'border-slate-700 hover:border-slate-500'
-                            }`}
+                              }`}
                           >
                             <p className="text-xs font-semibold text-slate-200 leading-tight">{t.label}</p>
                             <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{t.description}</p>
