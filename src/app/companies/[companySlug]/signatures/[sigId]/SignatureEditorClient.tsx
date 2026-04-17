@@ -251,16 +251,18 @@ export default function SignatureEditorClient({
     }
   }
 
-  // Calculate absolute base URL to correct any old /uploads/ signatures
-  const base = typeof window !== 'undefined'
-    ? process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') || window.location.origin
-    : '';
+  // For the live preview we use relative URLs (works same-origin in the browser).
+  const previewHtml = generateSignatureHtml(draft as SignatureData);
 
-  // Generate the HTML and patch any old relative image paths to become absolute
-  const html = generateSignatureHtml(draft as SignatureData).replace(
-    /src="(\/uploads\/)/g,
-    `src="${base}$1`
-  );
+  // For copying we need absolute URLs so email clients can fetch the images.
+  function buildCopyHtml() {
+    const base =
+      process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') ||
+      window.location.origin;
+    return generateSignatureHtml(draft as SignatureData)
+      .replace(/src="(\/uploads\/)/g, `src="${base}$1`)
+      .replace(/src="(\/api\/icon)/g, `src="${base}$1`);
+  }
 
   async function handleCopy() {
     try {
