@@ -33,6 +33,7 @@ function iconUrl(
 ): string {
   const c = encodeURIComponent(color.replace('#', ''));
   return `https://cdn.simpleicons.org/${platform}/${c}.png`;
+}
 
 function socialIcon(
   platform: SocialPlatform,

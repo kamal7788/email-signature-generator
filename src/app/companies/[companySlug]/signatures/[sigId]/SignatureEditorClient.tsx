@@ -253,6 +253,7 @@ export default function SignatureEditorClient({
 
   // For the live preview we use relative URLs (works same-origin in the browser).
   const previewHtml = generateSignatureHtml(draft as SignatureData);
+  const html = previewHtml;
 
   // For copying we need absolute URLs so email clients can fetch the images.
   function buildCopyHtml() {
@@ -265,12 +266,13 @@ export default function SignatureEditorClient({
   }
 
   async function handleCopy() {
+    const copyHtml = buildCopyHtml();
     try {
       await navigator.clipboard.write([
-        new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }) }),
+        new ClipboardItem({ 'text/html': new Blob([copyHtml], { type: 'text/html' }) }),
       ]);
     } catch {
-      await navigator.clipboard.writeText(html);
+      await navigator.clipboard.writeText(copyHtml);
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
