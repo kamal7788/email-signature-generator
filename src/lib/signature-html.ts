@@ -31,9 +31,8 @@ function iconUrl(
   size: number,
   shape: 'rounded' | 'circle'
 ): string {
-  const c = encodeURIComponent(color);
-  return `/api/icon?p=${platform}&c=${c}&s=${size}&shape=${shape}`;
-}
+  const c = encodeURIComponent(color.replace('#', ''));
+  return `https://cdn.simpleicons.org/${platform}/${c}.png`;
 
 function socialIcon(
   platform: SocialPlatform,
