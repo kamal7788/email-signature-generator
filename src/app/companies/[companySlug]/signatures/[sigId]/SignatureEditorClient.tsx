@@ -189,7 +189,10 @@ export default function SignatureEditorClient({
   isNew: boolean;
 }) {
   const router = useRouter();
-  const [draft, setDraft] = useState<DraftData>(initialData);
+  const [draft, setDraft] = useState<DraftData>({
+    ...initialData,
+    colors: { ...DEFAULT_COLORS, ...initialData.colors },
+  });
   const [activeTab, setActiveTab] = useState<'profile' | 'assets' | 'social' | 'design' | 'disclaimer'>('profile');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -543,6 +546,7 @@ export default function SignatureEditorClient({
                   <ColorSwatch label="Body Text" value={draft.colors.text} onChange={(v) => updateColor('text', v)} />
                   <ColorSwatch label="Light Text" value={draft.colors.lightText} onChange={(v) => updateColor('lightText', v)} />
                   <ColorSwatch label="Social Icons" value={draft.colors.socialIcons} onChange={(v) => updateColor('socialIcons', v)} />
+                  <ColorSwatch label="Contact Icons" value={draft.colors.contactIcons} onChange={(v) => updateColor('contactIcons', v)} />
                 </div>
                 <button
                   onClick={() => setDraft((d) => ({ ...d, colors: DEFAULT_COLORS }))}

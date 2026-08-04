@@ -27,6 +27,7 @@ export interface SignatureColors {
   text: string;
   lightText: string;
   socialIcons: string;
+  contactIcons: string;
 }
 
 export interface SignatureData {
@@ -73,6 +74,7 @@ export const DEFAULT_COLORS: SignatureColors = {
   text: '#1e293b',
   lightText: '#64748b',
   socialIcons: '#4f46e5',
+  contactIcons: '#4f46e5',
 };
 
 export const DEFAULT_DLP = `This email and any files transmitted with it are confidential and intended solely for the use of the individual or entity to whom they are addressed. If you have received this email in error please notify the system manager. This message contains confidential information and is intended only for the individual named.`;

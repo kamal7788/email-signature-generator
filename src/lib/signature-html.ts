@@ -55,6 +55,19 @@ function socialIcon(
   return `<a href="${esc(url)}" target="_blank" style="display:inline-block;text-decoration:none;margin-right:6px;vertical-align:middle;line-height:0;"><img src="${src}" width="${size}" height="${size}" alt="${platform}" style="display:block;border:none;" /></a>`;
 }
 
+function contactIconSvg(
+  type: 'email' | 'phone' | 'website',
+  color: string,
+  size = 14
+): string {
+  const paths: Record<string, string> = {
+    email: 'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z',
+    phone: 'M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.1.31.03.66-.25 1.02l-2.2 2.2z',
+    website: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z',
+  };
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${esc(color)}" style="vertical-align:middle;display:inline;"><path d="${paths[type]}"/></svg>`;
+}
+
 // ── Corporate A — classic top-bar layout ──────────────────────────────────────
 
 function corporateAHtml(sig: SignatureData): string {
@@ -117,7 +130,7 @@ function corporateBHtml(sig: SignatureData): string {
   </tr>
   <tr>
     <td style="padding:10px 16px 6px;">
-      ${sig.email ? `<a href="mailto:${esc(sig.email)}" style="${chipStyle}color:${esc(c.primary)};">&#9993;&nbsp;${esc(sig.email)}</a>` : ''}${sig.phone ? `<a href="tel:${esc(sig.phone)}" style="${chipStyle}color:${esc(c.lightText)};">&#9990;&nbsp;${esc(sig.phone)}</a>` : ''}${sig.website ? `<a href="${esc(sig.website)}" target="_blank" style="${chipStyle}color:${esc(c.lightText)};">&#127760;&nbsp;${esc(sig.website)}</a>` : ''}
+      ${sig.email ? `<a href="mailto:${esc(sig.email)}" style="${chipStyle}color:${esc(c.contactIcons)};">${contactIconSvg('email', c.contactIcons, 13)}&nbsp;${esc(sig.email)}</a>` : ''}${sig.phone ? `<a href="tel:${esc(sig.phone)}" style="${chipStyle}color:${esc(c.contactIcons)};">${contactIconSvg('phone', c.contactIcons, 13)}&nbsp;${esc(sig.phone)}</a>` : ''}${sig.website ? `<a href="${esc(sig.website)}" target="_blank" style="${chipStyle}color:${esc(c.contactIcons)};">${contactIconSvg('website', c.contactIcons, 13)}&nbsp;${esc(sig.website)}</a>` : ''}
     </td>
   </tr>${sig.socialLinks.length > 0 ? `\n  <tr>\n    <td style="padding:2px 16px 12px;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons, 26, 'circle')).join('')}</td>\n  </tr>` : `\n  <tr><td style="padding:0 16px 12px;font-size:0;">&nbsp;</td></tr>`}${sig.dlpDisclaimer ? `\n  <tr>\n    <td colspan="2" style="padding:10px 0 0 22px;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;line-height:1.5;font-style:italic;">${esc(sig.dlpDisclaimer)}</td>\n  </tr>` : `\n  <tr><td style="padding:0;font-size:0;">&nbsp;</td></tr>`}
 </table>`;
@@ -194,9 +207,9 @@ function modernAHtml(sig: SignatureData): string {
       <p style="margin:3px 0 0;padding:0;font-size:11px;color:${esc(c.lightText)};text-transform:uppercase;letter-spacing:0.8px;">${esc(sig.jobTitle)}</p>
       <p style="margin:2px 0 10px;padding:0;font-size:12px;font-weight:bold;color:${esc(c.primary)};">${esc(sig.company)}</p>
       <table cellpadding="0" cellspacing="0" border="0">
-        ${sig.email ? `<tr><td style="padding:1px 10px 1px 0;font-size:16px;color:${esc(c.primary)};vertical-align:middle;">&#9993;</td><td style="padding:1px 0;font-size:12px;"><a href="mailto:${esc(sig.email)}" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.email)}</a></td></tr>` : ''}
-        ${sig.phone ? `<tr><td style="padding:1px 10px 1px 0;font-size:16px;color:${esc(c.primary)};vertical-align:middle;">&#9990;</td><td style="padding:1px 0;font-size:12px;color:${esc(c.text)};">${esc(sig.phone)}</td></tr>` : ''}
-        ${sig.website ? `<tr><td style="padding:1px 10px 1px 0;font-size:16px;color:${esc(c.primary)};vertical-align:middle;">&#127760;</td><td style="padding:1px 0;font-size:12px;"><a href="${esc(sig.website)}" target="_blank" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.website)}</a></td></tr>` : ''}
+        ${sig.email ? `<tr><td style="padding:1px 10px 1px 0;vertical-align:middle;">${contactIconSvg('email', c.contactIcons, 16)}</td><td style="padding:1px 0;font-size:12px;"><a href="mailto:${esc(sig.email)}" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.email)}</a></td></tr>` : ''}
+        ${sig.phone ? `<tr><td style="padding:1px 10px 1px 0;vertical-align:middle;">${contactIconSvg('phone', c.contactIcons, 16)}</td><td style="padding:1px 0;font-size:12px;color:${esc(c.text)};">${esc(sig.phone)}</td></tr>` : ''}
+        ${sig.website ? `<tr><td style="padding:1px 10px 1px 0;vertical-align:middle;">${contactIconSvg('website', c.contactIcons, 16)}</td><td style="padding:1px 0;font-size:12px;"><a href="${esc(sig.website)}" target="_blank" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.website)}</a></td></tr>` : ''}
       </table>
     </td>${sig.logoUrl ? `\n    <td style="padding:0 0 0 20px;vertical-align:middle;text-align:right;"><img src="${esc(sig.logoUrl)}" height="52" style="max-height:52px;max-width:130px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
   </tr>${sig.socialLinks.length > 0 ? `\n  <tr>\n    <td colspan="${totalCols}" style="padding:12px 0 0;border-top:1px solid #e2e8f0;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons)).join('')}</td>\n  </tr>` : ''}
@@ -210,9 +223,9 @@ function modernBHtml(sig: SignatureData): string {
   const hasPortrait = sig.showPortrait && !!sig.portraitUrl;
 
   const contactRows = [
-    sig.email ? `<tr><td style="padding:2px 10px 2px 0;font-size:16px;color:${esc(c.primary)};vertical-align:middle;">&#9993;</td><td style="padding:2px 0;font-size:12px;"><a href="mailto:${esc(sig.email)}" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.email)}</a></td></tr>` : '',
-    sig.phone ? `<tr><td style="padding:2px 10px 2px 0;font-size:16px;color:${esc(c.primary)};vertical-align:middle;">&#9990;</td><td style="padding:2px 0;font-size:12px;color:${esc(c.text)};">${esc(sig.phone)}</td></tr>` : '',
-    sig.website ? `<tr><td style="padding:2px 10px 2px 0;font-size:16px;color:${esc(c.primary)};vertical-align:middle;">&#127760;</td><td style="padding:2px 0;font-size:12px;"><a href="${esc(sig.website)}" target="_blank" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.website)}</a></td></tr>` : '',
+    sig.email ? `<tr><td style="padding:2px 10px 2px 0;vertical-align:middle;">${contactIconSvg('email', c.contactIcons, 16)}</td><td style="padding:2px 0;font-size:12px;"><a href="mailto:${esc(sig.email)}" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.email)}</a></td></tr>` : '',
+    sig.phone ? `<tr><td style="padding:2px 10px 2px 0;vertical-align:middle;">${contactIconSvg('phone', c.contactIcons, 16)}</td><td style="padding:2px 0;font-size:12px;color:${esc(c.text)};">${esc(sig.phone)}</td></tr>` : '',
+    sig.website ? `<tr><td style="padding:2px 10px 2px 0;vertical-align:middle;">${contactIconSvg('website', c.contactIcons, 16)}</td><td style="padding:2px 0;font-size:12px;"><a href="${esc(sig.website)}" target="_blank" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.website)}</a></td></tr>` : '',
   ].filter(Boolean).join('');
 
   return `<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;max-width:560px;border-collapse:collapse;">
