@@ -25,14 +25,23 @@ function esc(str: string): string {
  * replacement; for /api/icon we use a relative path here and the same
  * replacement pattern makes it absolute at copy time.
  */
+function simpleHash(str: string): string {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h).toString(36);
+}
+
 function iconUrl(
   platform: SocialPlatform,
   color: string,
   size: number,
   shape: 'rounded' | 'circle'
 ): string {
-  const c = encodeURIComponent(color.replace('#', ''));
-  return `https://cdn.simpleicons.org/${platform}/${c}.png`;
+  const c = encodeURIComponent(color);
+  const v = simpleHash(`${platform}${color}${size}${shape}`);
+  return `/api/icon?p=${platform}&c=${c}&s=${size}&shape=${shape}&v=${v}`;
 }
 
 function socialIcon(

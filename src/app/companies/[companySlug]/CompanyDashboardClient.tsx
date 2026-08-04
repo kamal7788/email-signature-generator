@@ -41,10 +41,9 @@ function SignatureCard({
     const base =
       process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') ||
       window.location.origin;
-    const html = generateSignatureHtml(sig).replace(
-      /src="(\/uploads\/)/g,
-      `src="${base}$1`
-    );
+    const html = generateSignatureHtml(sig)
+      .replace(/src="(\/uploads\/)/g, `src="${base}$1`)
+      .replace(/src="(\/api\/icon)/g, `src="${base}$1`);
     try {
       await navigator.clipboard.write([
         new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }) }),
