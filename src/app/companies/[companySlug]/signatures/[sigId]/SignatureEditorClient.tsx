@@ -10,7 +10,6 @@ import {
   TemplateName,
   SOCIAL_PLATFORM_LABELS,
   DEFAULT_COLORS,
-  isCorporateTemplate,
 } from '@/types';
 import { generateSignatureHtml } from '@/lib/signature-html';
 
@@ -198,6 +197,7 @@ export default function SignatureEditorClient({
   const [saveError, setSaveError] = useState('');
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState<'logo' | 'portrait' | null>(null);
+  const [uploadError, setUploadError] = useState('');
   const logoFileRef = useRef<HTMLInputElement>(null);
   const portraitFileRef = useRef<HTMLInputElement>(null);
 
@@ -211,6 +211,7 @@ export default function SignatureEditorClient({
 
   async function uploadFile(file: File, type: 'logo' | 'portrait') {
     setUploading(type);
+    setUploadError('');
     const form = new FormData();
     form.append('file', file);
     form.append('companySlug', companySlug);
@@ -220,7 +221,11 @@ export default function SignatureEditorClient({
       if (res.ok) {
         if (type === 'logo') update({ logoUrl: data.url });
         else update({ portraitUrl: data.url, showPortrait: true });
+      } else {
+        setUploadError(data.error ?? 'Upload failed.');
       }
+    } catch {
+      setUploadError('Upload network error.');
     } finally {
       setUploading(null);
     }
@@ -259,6 +264,8 @@ export default function SignatureEditorClient({
   const html = previewHtml;
 
   // For copying we need absolute URLs so email clients can fetch the images.
+  // Drive share links + R2 https URLs are already absolute (normalized at
+  // render time); only relative /uploads/ and /api/icon need the base.
   function buildCopyHtml() {
     const base =
       process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') ||
@@ -286,7 +293,8 @@ export default function SignatureEditorClient({
     { id: 'assets' as const, label: 'Assets' },
     { id: 'social' as const, label: 'Social' },
     { id: 'design' as const, label: 'Design' },
-    ...(isCorporateTemplate(draft.template) ? [{ id: 'disclaimer' as const, label: 'Disclaimer' }] : []),
+    // Disclaimer renders in ALL templates now (compliance) — always visible.
+    { id: 'disclaimer' as const, label: 'Disclaimer' },
   ];
 
   return (
@@ -412,21 +420,29 @@ export default function SignatureEditorClient({
                     <Input
                       value={draft.logoUrl}
                       onChange={(v) => update({ logoUrl: v })}
-                      placeholder="https://example.com/logo.png"
+                      placeholder="https://… or Drive share link"
                     />
                   </Field>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Paste any https image, an uploaded URL, or a Google Drive share link
+                    (Drive links auto-convert to direct images on preview/copy — share as
+                    “Anyone with the link”).
+                  </p>
+                  {uploadError && (
+                    <p className="text-xs text-red-400">{uploadError}</p>
+                  )}
                   <p className="text-slate-500 text-xs text-center">— or —</p>
                   <button
                     onClick={() => logoFileRef.current?.click()}
                     disabled={uploading === 'logo'}
                     className="w-full rounded-lg border-2 border-dashed border-slate-600 py-3 text-xs text-slate-400 hover:border-indigo-500 hover:text-indigo-400 transition-colors disabled:opacity-50"
                   >
-                    {uploading === 'logo' ? 'Uploading…' : '+ Upload Logo'}
+                    {uploading === 'logo' ? 'Uploading…' : '+ Upload Logo (R2/cloud, JPEG/PNG/GIF/WebP ≤ limit)'}
                   </button>
                   <input
                     ref={logoFileRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
                     className="hidden"
                     onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'logo')}
                   />
@@ -453,7 +469,7 @@ export default function SignatureEditorClient({
                     <Input
                       value={draft.portraitUrl}
                       onChange={(v) => update({ portraitUrl: v })}
-                      placeholder="https://example.com/photo.jpg"
+                      placeholder="https://… or Drive share link"
                     />
                   </Field>
                   <p className="text-slate-500 text-xs text-center">— or —</p>
@@ -462,12 +478,12 @@ export default function SignatureEditorClient({
                     disabled={uploading === 'portrait'}
                     className="w-full rounded-lg border-2 border-dashed border-slate-600 py-3 text-xs text-slate-400 hover:border-indigo-500 hover:text-indigo-400 transition-colors disabled:opacity-50"
                   >
-                    {uploading === 'portrait' ? 'Uploading…' : '+ Upload Portrait'}
+                    {uploading === 'portrait' ? 'Uploading…' : '+ Upload Portrait (R2/cloud, JPEG/PNG/GIF/WebP ≤ limit)'}
                   </button>
                   <input
                     ref={portraitFileRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
                     className="hidden"
                     onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], 'portrait')}
                   />
@@ -557,11 +573,11 @@ export default function SignatureEditorClient({
               </>
             )}
 
-            {/* DISCLAIMER TAB (corporate only) */}
+            {/* DISCLAIMER TAB — renders in all templates */}
             {activeTab === 'disclaimer' && (
               <>
                 <p className="text-xs text-slate-500 mb-2">
-                  This text appears at the bottom of your corporate signature.
+                  This text appears at the bottom of every template. Leave empty to omit.
                 </p>
                 <Field label="DLP Disclaimer">
                   <Textarea

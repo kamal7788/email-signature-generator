@@ -12,15 +12,35 @@ function ensureDir(dir: string) {
 }
 
 export function slugify(name: string): string {
-  return name
+  const slug = name
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/^-|-$/g, '')
+    .slice(0, 60);
+  return slug || 'company';
+}
+
+function findUniqueSlug(base: string): string {
+  const root = base || 'company';
+  if (!fs.existsSync(companyDir(root))) return root;
+  for (let i = 2; i < 1000; i++) {
+    const candidate = `${root}-${i}`;
+    if (!fs.existsSync(companyDir(candidate))) return candidate;
+  }
+  return `${root}-${Date.now().toString(36)}`;
 }
 
 function companyDir(slug: string) {
   return path.join(DATA_DIR, slug);
+}
+
+function isSafeSlug(slug: string): boolean {
+  return /^[a-z0-9-]{1,80}$/.test(slug);
+}
+
+function assertSafeSlug(slug: string): void {
+  if (!isSafeSlug(slug)) throw new Error(`Invalid company slug "${slug}".`);
 }
 
 function signaturesDir(slug: string) {
@@ -31,11 +51,9 @@ function signaturesDir(slug: string) {
 
 export function createCompany(name: string): CompanyMeta {
   ensureDir(DATA_DIR);
-  const slug = slugify(name);
+  // Auto-suffix on collision (acme, acme-2, acme-3…) instead of throwing 409.
+  const slug = findUniqueSlug(slugify(name));
   const dir = companyDir(slug);
-  if (fs.existsSync(dir)) {
-    throw new Error(`A company with slug "${slug}" already exists.`);
-  }
   ensureDir(dir);
   ensureDir(signaturesDir(slug));
 
@@ -63,6 +81,7 @@ export function listCompanies(): CompanyMeta[] {
 }
 
 export function getCompany(slug: string): Company | null {
+  if (!isSafeSlug(slug)) return null;
   const p = path.join(companyDir(slug), 'meta.json');
   if (!fs.existsSync(p)) return null;
   const meta = JSON.parse(fs.readFileSync(p, 'utf-8')) as CompanyMeta;
@@ -70,6 +89,7 @@ export function getCompany(slug: string): Company | null {
 }
 
 export function deleteCompany(slug: string): boolean {
+  if (!isSafeSlug(slug)) return false;
   const dir = companyDir(slug);
   if (!fs.existsSync(dir)) return false;
   fs.rmSync(dir, { recursive: true, force: true });
@@ -82,6 +102,7 @@ export function createSignature(
   companySlug: string,
   data: Omit<SignatureData, 'id' | 'companyId' | 'createdAt' | 'updatedAt'>
 ): SignatureData {
+  assertSafeSlug(companySlug);
   ensureDir(signaturesDir(companySlug));
   const id = uuidv4();
   const sig: SignatureData = {
@@ -99,6 +120,7 @@ export function createSignature(
 }
 
 export function listSignatures(companySlug: string): SignatureData[] {
+  if (!isSafeSlug(companySlug)) return [];
   const dir = signaturesDir(companySlug);
   if (!fs.existsSync(dir)) return [];
   return fs
@@ -117,6 +139,8 @@ export function getSignature(
   companySlug: string,
   sigId: string
 ): SignatureData | null {
+  if (!isSafeSlug(companySlug)) return null;
+  if (!/^[A-Za-z0-9-]{1,80}$/.test(sigId)) return null;
   const p = path.join(signaturesDir(companySlug), `${sigId}.json`);
   if (!fs.existsSync(p)) return null;
   return JSON.parse(fs.readFileSync(p, 'utf-8')) as SignatureData;
@@ -145,6 +169,8 @@ export function updateSignature(
 }
 
 export function deleteSignature(companySlug: string, sigId: string): boolean {
+  if (!isSafeSlug(companySlug)) return false;
+  if (!/^[A-Za-z0-9-]{1,80}$/.test(sigId)) return false;
   const p = path.join(signaturesDir(companySlug), `${sigId}.json`);
   if (!fs.existsSync(p)) return false;
   fs.unlinkSync(p);

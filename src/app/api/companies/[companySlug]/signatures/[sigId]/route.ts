@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getSignature, updateSignature, deleteSignature } from '@/lib/storage';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ companySlug: string; sigId: string }> }
 ) {
+  const denied = requireAuth(req);
+  if (denied) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   const { companySlug, sigId } = await params;
   const sig = getSignature(companySlug, sigId);
   if (!sig) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
@@ -15,6 +18,8 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ companySlug: string; sigId: string }> }
 ) {
+  const denied = requireAuth(req);
+  if (denied) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   const { companySlug, sigId } = await params;
   const body = await req.json();
   const updated = updateSignature(companySlug, sigId, body);
@@ -23,9 +28,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ companySlug: string; sigId: string }> }
 ) {
+  const denied = requireAuth(req);
+  if (denied) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   const { companySlug, sigId } = await params;
   const ok = deleteSignature(companySlug, sigId);
   if (!ok) return NextResponse.json({ error: 'Not found.' }, { status: 404 });

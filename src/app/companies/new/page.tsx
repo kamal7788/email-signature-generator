@@ -57,6 +57,7 @@ export default function NewCompanyPage() {
             <h1 className="text-2xl font-bold text-white">Create a Company</h1>
             <p className="text-slate-400 mt-2 text-sm">
               A company folder holds all your email signatures for that organization.
+              Duplicate names auto-get a -2, -3 suffix.
             </p>
           </div>
 

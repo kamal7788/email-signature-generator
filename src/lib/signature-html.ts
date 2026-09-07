@@ -1,4 +1,5 @@
 import { SignatureData, SocialPlatform } from '@/types';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -8,6 +9,14 @@ function esc(str: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * Escape + normalize image URLs. Converts pasted Google Drive share links
+ * to direct thumbnail URLs; leaves R2 /uploads / https URLs untouched.
+ */
+function img(url: string): string {
+  return esc(normalizeImageUrl(url));
 }
 
 /**
@@ -80,12 +89,12 @@ function corporateAHtml(sig: SignatureData): string {
     <td colspan="${cols}" style="background-color:${esc(c.primary)};height:5px;padding:0;font-size:0;line-height:0;">&nbsp;</td>
   </tr>
   <tr>
-    <td style="padding:16px 12px 12px 0;vertical-align:middle;white-space:nowrap;">${hasPortrait ? `<img src="${esc(sig.portraitUrl)}" width="68" height="68" style="border-radius:50%;display:block;object-fit:cover;border:3px solid ${esc(c.primary)};" alt="${esc(sig.fullName)}" />` : ''}</td>
+    <td style="padding:16px 12px 12px 0;vertical-align:middle;white-space:nowrap;">${hasPortrait ? `<img src="${img(sig.portraitUrl)}" width="68" height="68" style="border-radius:50%;display:block;object-fit:cover;border:3px solid ${esc(c.primary)};" alt="${esc(sig.fullName)}" />` : ''}</td>
     <td style="padding:16px 12px 12px;vertical-align:top;">
       <p style="margin:0;padding:0;font-size:18px;font-weight:bold;color:${esc(c.text)};line-height:1.2;">${esc(sig.fullName)}</p>
       <p style="margin:3px 0 0;padding:0;font-size:13px;color:${esc(c.lightText)};line-height:1.3;">${esc(sig.jobTitle)}</p>
       <p style="margin:2px 0 0;padding:0;font-size:13px;font-weight:bold;color:${esc(c.primary)};line-height:1.3;">${esc(sig.company)}</p>
-    </td>${sig.logoUrl ? `\n    <td style="padding:16px 0 12px 12px;vertical-align:top;text-align:right;"><img src="${esc(sig.logoUrl)}" height="52" style="max-height:52px;max-width:130px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
+    </td>${sig.logoUrl ? `\n    <td style="padding:16px 0 12px 12px;vertical-align:top;text-align:right;"><img src="${img(sig.logoUrl)}" height="52" style="max-height:52px;max-width:130px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
   </tr>
   <tr>
     <td colspan="${cols}" style="padding:0;border-top:2px solid ${esc(c.primary)};font-size:0;line-height:0;">&nbsp;</td>
@@ -115,12 +124,12 @@ function corporateBHtml(sig: SignatureData): string {
     <td style="padding:16px 16px 10px;">
       <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
         <tr>
-          ${hasPortrait ? `<td style="padding:0 14px 0 0;vertical-align:middle;"><img src="${esc(sig.portraitUrl)}" width="64" height="64" style="border-radius:50%;display:block;object-fit:cover;" alt="${esc(sig.fullName)}" /></td>` : ''}
+          ${hasPortrait ? `<td style="padding:0 14px 0 0;vertical-align:middle;"><img src="${img(sig.portraitUrl)}" width="64" height="64" style="border-radius:50%;display:block;object-fit:cover;" alt="${esc(sig.fullName)}" /></td>` : ''}
           <td style="vertical-align:top;">
             <p style="margin:0;padding:0;font-size:19px;font-weight:bold;color:${esc(c.text)};line-height:1.2;">${esc(sig.fullName)}</p>
             <p style="margin:3px 0 0;padding:0;font-size:13px;color:${esc(c.lightText)};line-height:1.4;">${esc(sig.jobTitle)}${sig.jobTitle && sig.company ? `<span style="color:${esc(c.primary)};"> &bull; </span>` : ''}<span style="color:${esc(c.primary)};font-weight:600;">${esc(sig.company)}</span></p>
           </td>
-          ${sig.logoUrl ? `<td style="vertical-align:top;text-align:right;padding-left:16px;"><img src="${esc(sig.logoUrl)}" height="48" style="max-height:48px;max-width:120px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
+          ${sig.logoUrl ? `<td style="vertical-align:top;text-align:right;padding-left:16px;"><img src="${img(sig.logoUrl)}" height="48" style="max-height:48px;max-width:120px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
         </tr>
       </table>
     </td>
@@ -162,7 +171,7 @@ function minimalAHtml(sig: SignatureData): string {
   </tr>
   <tr>
     <td style="padding:8px 0 6px;font-size:12px;">${contact}</td>
-  </tr>${sig.socialLinks.length > 0 ? `\n  <tr>\n    <td style="padding:6px 0 4px;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons)).join('')}</td>\n  </tr>` : ''}${sig.logoUrl ? `\n  <tr>\n    <td style="padding:10px 0 0;"><img src="${esc(sig.logoUrl)}" height="36" style="max-height:36px;max-width:110px;display:block;" alt="${esc(sig.company)}" /></td>\n  </tr>` : ''}
+  </tr>${sig.socialLinks.length > 0 ? `\n  <tr>\n    <td style="padding:6px 0 4px;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons)).join('')}</td>\n  </tr>` : ''}${sig.logoUrl ? `\n  <tr>\n    <td style="padding:10px 0 0;"><img src="${img(sig.logoUrl)}" height="36" style="max-height:36px;max-width:110px;display:block;" alt="${esc(sig.company)}" /></td>\n  </tr>` : ''}${sig.dlpDisclaimer ? `\n  <tr>\n    <td style="padding:10px 0 0;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;line-height:1.5;font-style:italic;">${esc(sig.dlpDisclaimer)}</td>\n  </tr>` : ''}
 </table>`;
 }
 
@@ -187,8 +196,8 @@ function minimalBHtml(sig: SignatureData): string {
     </td>
     <td style="padding:0 0 0 18px;vertical-align:top;">
       <table cellpadding="0" cellspacing="0" border="0">${contactRows}</table>
-    </td>${sig.logoUrl ? `\n    <td style="padding:0 0 0 20px;vertical-align:top;text-align:right;"><img src="${esc(sig.logoUrl)}" height="44" style="max-height:44px;max-width:110px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
-  </tr>${sig.socialLinks.length > 0 ? `\n  <tr>\n    <td colspan="${cols}" style="padding:10px 0 0;border-top:1px solid #e2e8f0;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons)).join('')}</td>\n  </tr>` : ''}
+    </td>${sig.logoUrl ? `\n    <td style="padding:0 0 0 20px;vertical-align:top;text-align:right;"><img src="${img(sig.logoUrl)}" height="44" style="max-height:44px;max-width:110px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
+  </tr>${sig.socialLinks.length > 0 ? `\n  <tr>\n    <td colspan="${cols}" style="padding:10px 0 0;border-top:1px solid #e2e8f0;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons)).join('')}</td>\n  </tr>` : ''}${sig.dlpDisclaimer ? `\n  <tr>\n    <td colspan="${cols}" style="padding:10px 0 0;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;line-height:1.5;font-style:italic;">${esc(sig.dlpDisclaimer)}</td>\n  </tr>` : ''}
 </table>`;
 }
 
@@ -200,7 +209,7 @@ function modernAHtml(sig: SignatureData): string {
   const totalCols = (hasPortrait ? 1 : 0) + 2 + (sig.logoUrl ? 1 : 0);
 
   return `<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;max-width:560px;border-collapse:collapse;">
-  <tr>${hasPortrait ? `\n    <td style="padding:0 16px 0 0;vertical-align:top;"><img src="${esc(sig.portraitUrl)}" width="84" height="84" style="border-radius:50%;display:block;object-fit:cover;border:3px solid ${esc(c.primary)};" alt="${esc(sig.fullName)}" /></td>` : ''}
+  <tr>${hasPortrait ? `\n    <td style="padding:0 16px 0 0;vertical-align:top;"><img src="${img(sig.portraitUrl)}" width="84" height="84" style="border-radius:50%;display:block;object-fit:cover;border:3px solid ${esc(c.primary)};" alt="${esc(sig.fullName)}" /></td>` : ''}
     <td style="width:4px;background-color:${esc(c.primary)};padding:0;vertical-align:stretch;">&nbsp;</td>
     <td style="padding:0 0 0 16px;vertical-align:top;min-width:200px;">
       <p style="margin:0;padding:0;font-size:20px;font-weight:bold;color:${esc(c.text)};line-height:1.2;">${esc(sig.fullName)}</p>
@@ -211,8 +220,8 @@ function modernAHtml(sig: SignatureData): string {
         ${sig.phone ? `<tr><td style="padding:1px 10px 1px 0;vertical-align:middle;">${contactIconSvg('phone', c.contactIcons, 16)}</td><td style="padding:1px 0;font-size:12px;color:${esc(c.text)};">${esc(sig.phone)}</td></tr>` : ''}
         ${sig.website ? `<tr><td style="padding:1px 10px 1px 0;vertical-align:middle;">${contactIconSvg('website', c.contactIcons, 16)}</td><td style="padding:1px 0;font-size:12px;"><a href="${esc(sig.website)}" target="_blank" style="color:${esc(c.text)};text-decoration:none;">${esc(sig.website)}</a></td></tr>` : ''}
       </table>
-    </td>${sig.logoUrl ? `\n    <td style="padding:0 0 0 20px;vertical-align:middle;text-align:right;"><img src="${esc(sig.logoUrl)}" height="52" style="max-height:52px;max-width:130px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
-  </tr>${sig.socialLinks.length > 0 ? `\n  <tr>\n    <td colspan="${totalCols}" style="padding:12px 0 0;border-top:1px solid #e2e8f0;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons)).join('')}</td>\n  </tr>` : ''}
+    </td>${sig.logoUrl ? `\n    <td style="padding:0 0 0 20px;vertical-align:middle;text-align:right;"><img src="${img(sig.logoUrl)}" height="52" style="max-height:52px;max-width:130px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
+  </tr>${sig.socialLinks.length > 0 ? `\n  <tr>\n    <td colspan="${totalCols}" style="padding:12px 0 0;border-top:1px solid #e2e8f0;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons)).join('')}</td>\n  </tr>` : ''}${sig.dlpDisclaimer ? `\n  <tr>\n    <td colspan="${totalCols}" style="padding:10px 0 0;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;line-height:1.5;font-style:italic;">${esc(sig.dlpDisclaimer)}</td>\n  </tr>` : ''}
 </table>`;
 }
 
@@ -231,7 +240,7 @@ function modernBHtml(sig: SignatureData): string {
   return `<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;max-width:560px;border-collapse:collapse;">
   <tr>
     <td style="background-color:${esc(c.primary)};padding:20px 18px;vertical-align:middle;text-align:center;width:148px;">
-      ${hasPortrait ? `<img src="${esc(sig.portraitUrl)}" width="72" height="72" style="border-radius:50%;display:block;margin:0 auto;object-fit:cover;border:3px solid rgba(255,255,255,0.4);" alt="${esc(sig.fullName)}" />` : ''}
+      ${hasPortrait ? `<img src="${img(sig.portraitUrl)}" width="72" height="72" style="border-radius:50%;display:block;margin:0 auto;object-fit:cover;border:3px solid rgba(255,255,255,0.4);" alt="${esc(sig.fullName)}" />` : ''}
       <p style="margin:${hasPortrait ? '10px' : '0'} 0 0;padding:0;font-size:15px;font-weight:bold;color:#ffffff;line-height:1.2;word-break:break-word;">${esc(sig.fullName)}</p>
       <p style="margin:3px 0 0;padding:0;font-size:10px;color:rgba(255,255,255,0.78);line-height:1.3;word-break:break-word;">${esc(sig.jobTitle)}</p>
     </td>
@@ -243,11 +252,11 @@ function modernBHtml(sig: SignatureData): string {
             <table cellpadding="0" cellspacing="0" border="0">${contactRows}</table>
             ${sig.socialLinks.length > 0 ? `<p style="margin:10px 0 0;padding:0;font-size:0;line-height:0;">${sig.socialLinks.map((s) => socialIcon(s.platform, s.url, c.socialIcons, 26, 'circle')).join('')}</p>` : ''}
           </td>
-          ${sig.logoUrl ? `<td style="vertical-align:bottom;text-align:right;padding-left:12px;"><img src="${esc(sig.logoUrl)}" height="44" style="max-height:44px;max-width:100px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
+          ${sig.logoUrl ? `<td style="vertical-align:bottom;text-align:right;padding-left:12px;"><img src="${img(sig.logoUrl)}" height="44" style="max-height:44px;max-width:100px;display:block;" alt="${esc(sig.company)}" /></td>` : ''}
         </tr>
       </table>
     </td>
-  </tr>
+  </tr>${sig.dlpDisclaimer ? `\n  <tr>\n    <td colspan="2" style="padding:10px 18px;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;line-height:1.5;font-style:italic;font-family:Arial,Helvetica,sans-serif;">${esc(sig.dlpDisclaimer)}</td>\n  </tr>` : ''}
 </table>`;
 }
 
