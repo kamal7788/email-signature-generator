@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      # NEXT_PUBLIC_BASE_URL bakes into client JS at build time.
+      # Change it => rebuild (`docker compose up -d --build`).
+      args:
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-}
+    image: email-signature-generator:latest
+    container_name: email-signatures
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: 1
+      # Runtime vars (read per-request, no rebuild needed to change):
+      # AUTH_USERNAME, AUTH_PASSWORD,
+      # R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+      # R2_BUCKET, R2_PUBLIC_URL, MAX_UPLOAD_MB
+      # are picked up from .env via env_file above.
+    volumes:
+      # Persist company JSON + local-fallback uploads across recreates.
+      # (With R2 configured, uploads live in R2; volumes stay as fallback.)
+      - sig-data:/app/data
+      - sig-uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  sig-data:
+  sig-uploads:
