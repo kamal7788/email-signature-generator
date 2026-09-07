@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 export function isR2Enabled(): boolean {
   return Boolean(
@@ -27,6 +27,102 @@ export function getR2PublicBase(): string {
     process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') ||
     ''
   );
+}
+
+export interface MediaItem {
+  key: string;
+  url: string;
+  size: number;
+  lastModified: string | null;
+  storage: 'r2' | 'local';
+}
+
+/**
+ * List R2 objects under <companySlug>/, newest first.
+ * Public URLs built from the bucket public base (r2.dev / custom domain).
+ */
+export async function listR2Media(companySlug: string): Promise<MediaItem[]> {
+  const base = getR2PublicBase();
+  if (!base) throw new Error('R2_PUBLIC_URL or NEXT_PUBLIC_BASE_URL is required.');
+  const client = getClient();
+  const items: MediaItem[] = [];
+  let token: string | undefined;
+  do {
+    const res = await client.send(
+      new ListObjectsV2Command({
+        Bucket: process.env.R2_BUCKET!,
+        Prefix: `${companySlug}/`,
+        ContinuationToken: token,
+        MaxKeys: 500,
+      })
+    );
+    for (const o of res.Contents ?? []) {
+      if (!o.Key) continue;
+      items.push({
+        key: o.Key,
+        url: `${base}/${o.Key}`,
+        size: o.Size ?? 0,
+        lastModified: o.LastModified ? o.LastModified.toISOString() : null,
+        storage: 'r2',
+      });
+    }
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token);
+  items.sort((a, b) => (b.lastModified ?? '').localeCompare(a.lastModified ?? ''));
+  return items;
+}
+
+/** Delete one R2 object. Key must be validated by caller (scoped to company). */
+export async function deleteR2Media(key: string): Promise<void> {
+  const client = getClient();
+  await client.send(
+    new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET!, Key: key })
+  );
+}
+
+// ── Local fallback (public/uploads/<slug>/) ───────────────────────────────
+
+import fs from 'fs';
+import path from 'path';
+
+const LOCAL_BASE = path.join(process.cwd(), 'public', 'uploads');
+const LOCAL_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+
+export function listLocalMedia(companySlug: string, baseUrl: string): MediaItem[] {
+  const dir = path.join(LOCAL_BASE, companySlug);
+  if (!fs.existsSync(dir)) return [];
+  const base = baseUrl.replace(/\/$/, '');
+  return fs
+    .readdirSync(dir)
+    .filter((f) => {
+      const p = path.join(dir, f);
+      return (
+        fs.statSync(p).isFile() &&
+        LOCAL_EXTS.has(path.extname(f).toLowerCase()) &&
+        /^[A-Za-z0-9._-]+$/.test(f)
+      );
+    })
+    .map((f) => {
+      const st = fs.statSync(path.join(dir, f));
+      return {
+        key: `${companySlug}/${f}`,
+        url: `${base}/uploads/${companySlug}/${f}`,
+        size: st.size,
+        lastModified: st.mtime.toISOString(),
+        storage: 'local' as const,
+      };
+    })
+    .sort((a, b) => (b.lastModified ?? '').localeCompare(a.lastModified ?? ''));
+}
+
+export function deleteLocalMedia(companySlug: string, filename: string): boolean {
+  if (!/^[A-Za-z0-9._-]+$/.test(filename)) return false;
+  const p = path.resolve(path.join(LOCAL_BASE, companySlug, filename));
+  if (!p.startsWith(path.resolve(LOCAL_BASE) + path.sep)) return false;
+  if (!fs.existsSync(p) || !fs.statSync(p).isFile()) return false;
+  if (!LOCAL_EXTS.has(path.extname(p).toLowerCase())) return false;
+  fs.unlinkSync(p);
+  return true;
 }
 
 function sanitizeExt(ext: string): string {

@@ -198,6 +198,7 @@ export default function SignatureEditorClient({
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState<'logo' | 'portrait' | null>(null);
   const [uploadError, setUploadError] = useState('');
+  const [mediaTick, setMediaTick] = useState(0);
   const logoFileRef = useRef<HTMLInputElement>(null);
   const portraitFileRef = useRef<HTMLInputElement>(null);
 
@@ -221,6 +222,7 @@ export default function SignatureEditorClient({
       if (res.ok) {
         if (type === 'logo') update({ logoUrl: data.url });
         else update({ portraitUrl: data.url, showPortrait: true });
+        setMediaTick((t) => t + 1);
       } else {
         setUploadError(data.error ?? 'Upload failed.');
       }
@@ -514,6 +516,20 @@ export default function SignatureEditorClient({
                     </div>
                   )}
                 </div>
+
+                <MediaLibrary
+                  companySlug={companySlug}
+                  tick={mediaTick}
+                  currentLogoUrl={draft.logoUrl}
+                  currentPortraitUrl={draft.portraitUrl}
+                  onUseAsLogo={(url) => update({ logoUrl: url })}
+                  onUseAsPortrait={(url) => update({ portraitUrl: url, showPortrait: true })}
+                  onDeleted={(url) => {
+                    if (draft.logoUrl === url) update({ logoUrl: '' });
+                    if (draft.portraitUrl === url) update({ portraitUrl: '', showPortrait: false });
+                    setMediaTick((t) => t + 1);
+                  }}
+                />
               </>
             )}
 
@@ -740,6 +756,147 @@ function SocialLinksEditor({
 
       {links.length === 0 && available.length === ALL_PLATFORMS.length && (
         <p className="text-xs text-slate-600 text-center py-4">No social links added yet.</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Media Library (uploaded logos / portraits) ─────────────────────────────
+
+interface MediaItem {
+  key: string;
+  url: string;
+  size: number;
+  lastModified: string | null;
+  storage: 'r2' | 'local';
+}
+
+function formatBytes(n: number): string {
+  if (!n) return '—';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function MediaLibrary({
+  companySlug,
+  tick,
+  currentLogoUrl,
+  currentPortraitUrl,
+  onUseAsLogo,
+  onUseAsPortrait,
+  onDeleted,
+}: {
+  companySlug: string;
+  tick: number;
+  currentLogoUrl: string;
+  currentPortraitUrl: string;
+  onUseAsLogo: (url: string) => void;
+  onUseAsPortrait: (url: string) => void;
+  onDeleted: (url: string) => void;
+}) {
+  const [items, setItems] = useState<MediaItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    setError('');
+    fetch(`/api/companies/${companySlug}/media`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!live) return;
+        if (res.ok) setItems(data.items ?? []);
+        else setError(data.error ?? 'Failed to load media.');
+      })
+      .catch(() => live && setError('Network error.'))
+      .finally(() => live && setLoading(false));
+    return () => { live = false; };
+  }, [companySlug, tick]);
+
+  async function handleDelete(item: MediaItem) {
+    if (!confirm(`Delete ${item.key.split('/').pop()}? Removes it from ${item.storage === 'r2' ? 'R2' : 'local storage'} permanently.`)) return;
+    setDeleting(item.key);
+    try {
+      const res = await fetch(`/api/companies/${companySlug}/media`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: item.key }),
+      });
+      if (res.ok) {
+        setItems((prev) => prev.filter((i) => i.key !== item.key));
+        onDeleted(item.url);
+      }
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-700 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
+          Media Library {items.length > 0 && <span className="text-slate-500">({items.length})</span>}
+        </p>
+        {items[0] && (
+          <span className="text-[10px] text-slate-600 uppercase">
+            {items[0].storage === 'r2' ? 'R2 bucket' : 'local'}
+          </span>
+        )}
+      </div>
+      {loading && <p className="text-xs text-slate-500 text-center py-3">Loading media…</p>}
+      {error && <p className="text-xs text-red-400">{error}</p>}
+      {!loading && !error && items.length === 0 && (
+        <p className="text-xs text-slate-600 text-center py-3">
+          No uploads yet — use + Upload above, then reselect from here anytime.
+        </p>
+      )}
+      {items.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {items.map((item) => {
+            const name = item.key.split('/').pop() ?? item.key;
+            const inUse = item.url === currentLogoUrl || item.url === currentPortraitUrl;
+            return (
+              <div key={item.key} className="rounded-lg bg-slate-900 border border-slate-700 overflow-hidden">
+                <div className="h-16 flex items-center justify-center bg-white/5 p-1.5">
+                  <img src={item.url} alt={name} className="max-h-full max-w-full object-contain" loading="lazy" />
+                </div>
+                <div className="p-2 space-y-1.5">
+                  <p className="text-[10px] text-slate-400 truncate font-mono" title={name}>{name}</p>
+                  <p className="text-[10px] text-slate-600">
+                    {formatBytes(item.size)}{inUse && <span className="text-emerald-400"> · in use</span>}
+                  </p>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => onUseAsLogo(item.url)}
+                      className="flex-1 rounded bg-indigo-900/50 border border-indigo-700 px-1 py-1 text-[10px] text-indigo-300 hover:bg-indigo-800/60"
+                      title="Use as company logo"
+                    >
+                      Logo
+                    </button>
+                    <button
+                      onClick={() => onUseAsPortrait(item.url)}
+                      className="flex-1 rounded bg-indigo-900/50 border border-indigo-700 px-1 py-1 text-[10px] text-indigo-300 hover:bg-indigo-800/60"
+                      title="Use as portrait photo"
+                    >
+                      Photo
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item)}
+                      disabled={deleting === item.key}
+                      className="rounded bg-red-900/30 border border-red-900/60 px-2 py-1 text-[10px] text-red-400 hover:bg-red-900/60 disabled:opacity-50"
+                      title="Delete permanently"
+                    >
+                      {deleting === item.key ? '…' : '✕'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
