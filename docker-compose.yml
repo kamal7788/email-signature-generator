@@ -9,8 +9,13 @@ services:
     image: email-signature-generator:latest
     container_name: email-signatures
     restart: unless-stopped
-    ports:
-      - "${PORT:-3000}:3000"
+    # No `ports:` here on purpose — Coolify's proxy routes to the exposed
+    # port automatically, and a hardcoded host bind (e.g. 3000:3000) fails
+    # when the host port is taken. Dockerfile EXPOSEs 3000.
+    # For local runs outside Coolify, publish the port via an override file:
+    #   docker-compose.override.yml -> services.app.ports: ["3000:3000"]
+    expose:
+      - "3000"
     env_file:
       - .env
     environment:
