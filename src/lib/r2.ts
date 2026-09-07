@@ -59,5 +59,13 @@ export async function uploadToR2(
   );
   const base = getR2PublicBase();
   if (!base) throw new Error('R2_PUBLIC_URL or NEXT_PUBLIC_BASE_URL is required.');
+  // The S3 API endpoint (<account>.r2.cloudflarestorage.com) needs signed
+  // requests and never serves objects publicly — catch that misconfig early
+  // instead of returning image URLs that 403 everywhere.
+  if (/^https:\/\/[0-9a-f]{32}\.r2\.cloudflarestorage\.com\/?$/i.test(base)) {
+    throw new Error(
+      'R2_PUBLIC_URL must be the bucket public URL (custom domain or https://pub-….r2.dev), not the S3 API endpoint.'
+    );
+  }
   return `${base}/${key}`;
 }

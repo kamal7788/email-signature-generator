@@ -15,7 +15,7 @@ const ALLOWED: Record<string, string> = {
 
 function maxBytes(): number {
   const mb = parseFloat(process.env.MAX_UPLOAD_MB ?? '2');
-  const safe = Number.isFinite(mb) ? Math.min(Math.max(mb, 0.5), 10) : 2;
+  const safe = Number.isFinite(mb) ? Math.min(Math.max(mb, 0.5), 25) : 2;
   return Math.round(safe * 1024 * 1024);
 }
 
